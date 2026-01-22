@@ -217,6 +217,56 @@ src/
 - optimization: зеленый
 - monetization: индиго
 
+## Развертывание на GitHub Pages
+
+### Демо-режим
+
+Приложение автоматически работает в **демо-режиме**, если не настроены переменные окружения Supabase. В демо-режиме все данные хранятся в localStorage браузера.
+
+### Автоматическое развертывание
+
+При push в ветки `main`, `master` или `cursor/pages-5eb0` автоматически запускается GitHub Actions workflow, который:
+1. Проверяет TypeScript и ESLint
+2. Собирает проект
+3. Деплоит на ветку `gh-pages`
+
+### Настройка GitHub Pages
+
+1. Перейдите в **Settings** репозитория на GitHub
+2. Выберите раздел **Pages** в левом меню
+3. В секции **Build and deployment**:
+   - **Source**: Deploy from a branch
+   - **Branch**: `gh-pages` / `/ (root)`
+4. Нажмите **Save**
+
+После этого сайт будет доступен по адресу: `https://<username>.github.io/news/`
+
+### Локальная разработка
+
+```bash
+cd "project 2"
+npm install
+npm run dev
+```
+
+### Сборка для продакшена
+
+```bash
+npm run build
+npm run preview  # Для локального просмотра сборки
+```
+
+## Переменные окружения (опционально)
+
+Для подключения к Supabase создайте файл `.env` в папке `project 2`:
+
+```env
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+Без этих переменных приложение работает в демо-режиме с localStorage.
+
 ## Лицензия
 
 MIT
