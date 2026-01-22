@@ -1,5 +1,14 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  createEpic,
+  createTask,
+  listEpics,
+  listTasks,
+  removeEpic,
+  removeTask,
+  updateEpic,
+  updateTask
+} from '../lib/localStore';
 import type { Epic, Task, TaskStatus } from '../types/gantt';
 
 export function useGanttData(projectId: string) {
@@ -7,31 +16,18 @@ export function useGanttData(projectId: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const { data: epicsData, error: epicsError } = await supabase
-        .from('epics')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('order_index', { ascending: true });
+      const epicsData = listEpics(projectId);
+      const tasksData = listTasks(epicsData.map((epic) => epic.id));
 
-      if (epicsError) throw epicsError;
-
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('tasks')
-        .select('*')
-        .in('epic_id', epicsData?.map(e => e.id) || [])
-        .order('order_index', { ascending: true });
-
-      if (tasksError) throw tasksError;
-
-      const epicsWithTasks = epicsData?.map(epic => ({
+      const epicsWithTasks = epicsData.map((epic) => ({
         ...epic,
-        tasks: tasksData?.filter(task => task.epic_id === epic.id) || []
-      })) || [];
+        tasks: tasksData.filter((task) => task.epic_id === epic.id)
+      }));
 
       setEpics(epicsWithTasks);
     } catch (err) {
@@ -40,11 +36,11 @@ export function useGanttData(projectId: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
-    loadData();
-  }, [projectId]);
+    void loadData();
+  }, [loadData]);
 
   const updateTaskStatus = async (epicId: string, taskId: string) => {
     const epic = epics.find(e => e.id === epicId);
@@ -55,157 +51,170 @@ export function useGanttData(projectId: string) {
     const currentIndex = statuses.indexOf(task.status);
     const nextStatus = statuses[(currentIndex + 1) % statuses.length];
 
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: nextStatus, updated_at: new Date().toISOString() })
-      .eq('id', taskId);
-
-    if (error) {
-      console.error('Error updating task status:', error);
-      return;
-    }
-
-    setEpics(epics.map(e => {
-      if (e.id === epicId) {
-        return {
-          ...e,
-          tasks: e.tasks?.map(t => t.id === taskId ? { ...t, status: nextStatus } : t)
-        };
+    try {
+      const updated = updateTask(taskId, { status: nextStatus });
+      if (!updated) {
+        return;
       }
-      return e;
-    }));
+
+      setEpics((prev) =>
+        prev.map((epicItem) => {
+          if (epicItem.id === epicId) {
+            return {
+              ...epicItem,
+              tasks: epicItem.tasks?.map((t) =>
+                t.id === taskId ? { ...t, status: nextStatus } : t
+              )
+            };
+          }
+          return epicItem;
+        })
+      );
+    } catch (err) {
+      console.error('Error updating task status:', err);
+    }
   };
 
   const saveTask = async (epicId: string, task: Partial<Task>) => {
+    const epic = epics.find((item) => item.id === epicId);
+    if (!epic) {
+      return;
+    }
+
     if (task.id) {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ ...task, updated_at: new Date().toISOString() })
-        .eq('id', task.id);
-
-      if (error) {
-        console.error('Error updating task:', error);
-        return;
-      }
-
-      setEpics(epics.map(e => {
-        if (e.id === epicId) {
-          return {
-            ...e,
-            tasks: e.tasks?.map(t => t.id === task.id ? { ...t, ...task } : t)
-          };
+      try {
+        const { id, ...updates } = task;
+        const updated = updateTask(id, { ...updates, epic_id: epicId });
+        if (!updated) {
+          return;
         }
-        return e;
-      }));
+
+        setEpics((prev) =>
+          prev.map((epicItem) => {
+            if (epicItem.id === epicId) {
+              return {
+                ...epicItem,
+                tasks: epicItem.tasks?.map((t) => (t.id === id ? updated : t))
+              };
+            }
+            return epicItem;
+          })
+        );
+      } catch (err) {
+        console.error('Error updating task:', err);
+      }
     } else {
-      const epic = epics.find(e => e.id === epicId);
-      const maxOrder = Math.max(0, ...(epic?.tasks?.map(t => t.order_index) || []));
-
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert({
-          ...task,
-          epic_id: epicId,
-          order_index: maxOrder + 1
-        })
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error creating task:', error);
+      const maxOrder = Math.max(0, ...(epic.tasks?.map((t) => t.order_index) || []));
+      const name = task.name?.trim();
+      if (!name) {
         return;
       }
 
-      if (data) {
-        setEpics(epics.map(e => {
-          if (e.id === epicId) {
-            return {
-              ...e,
-              tasks: [...(e.tasks || []), data]
-            };
-          }
-          return e;
-        }));
+      try {
+        const created = createTask({
+          epic_id: epicId,
+          name,
+          description: task.description ?? '',
+          owner: task.owner ?? '',
+          start_month: task.start_month ?? epic.start_month ?? 0,
+          duration: task.duration ?? 1,
+          type: task.type ?? 'prep',
+          status: task.status ?? 'pending',
+          order_index: maxOrder + 1
+        });
+
+        setEpics((prev) =>
+          prev.map((epicItem) => {
+            if (epicItem.id === epicId) {
+              return {
+                ...epicItem,
+                tasks: [...(epicItem.tasks || []), created]
+              };
+            }
+            return epicItem;
+          })
+        );
+      } catch (err) {
+        console.error('Error creating task:', err);
       }
     }
   };
 
   const deleteTask = async (epicId: string, taskId: string) => {
-    const { error } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('id', taskId);
-
-    if (error) {
-      console.error('Error deleting task:', error);
-      return;
-    }
-
-    setEpics(epics.map(e => {
-      if (e.id === epicId) {
-        return {
-          ...e,
-          tasks: e.tasks?.filter(t => t.id !== taskId)
-        };
+    try {
+      const removed = removeTask(taskId);
+      if (!removed) {
+        return;
       }
-      return e;
-    }));
+      setEpics((prev) =>
+        prev.map((epicItem) => {
+          if (epicItem.id === epicId) {
+            return {
+              ...epicItem,
+              tasks: epicItem.tasks?.filter((t) => t.id !== taskId)
+            };
+          }
+          return epicItem;
+        })
+      );
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    }
   };
 
   const saveEpic = async (epic: Partial<Epic>) => {
     if (epic.id) {
-      const { error } = await supabase
-        .from('epics')
-        .update({ ...epic, updated_at: new Date().toISOString() })
-        .eq('id', epic.id);
-
-      if (error) {
-        console.error('Error updating epic:', error);
-        return;
+      try {
+        const { id, ...updates } = epic;
+        const updated = updateEpic(id, updates);
+        if (!updated) {
+          return;
+        }
+        setEpics((prev) =>
+          prev.map((epicItem) =>
+            epicItem.id === id
+              ? { ...epicItem, ...updated, tasks: epicItem.tasks }
+              : epicItem
+          )
+        );
+      } catch (err) {
+        console.error('Error updating epic:', err);
       }
-
-      setEpics(epics.map(e => e.id === epic.id ? { ...e, ...epic } : e));
     } else {
-      const maxOrder = Math.max(0, ...(epics.map(e => e.order_index) || []));
-
-      const { data, error } = await supabase
-        .from('epics')
-        .insert({
-          ...epic,
-          project_id: projectId,
-          order_index: maxOrder + 1
-        })
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error creating epic:', error);
+      const maxOrder = Math.max(0, ...(epics.map((item) => item.order_index) || []));
+      const name = epic.name?.trim();
+      if (!name) {
         return;
       }
 
-      if (data) {
-        setEpics([...epics, { ...data, tasks: [] }]);
+      try {
+        const created = createEpic({
+          project_id: projectId,
+          name,
+          description: epic.description ?? '',
+          type: epic.type ?? 'content',
+          start_month: epic.start_month ?? 0,
+          duration: epic.duration ?? 3,
+          order_index: maxOrder + 1
+        });
+
+        setEpics((prev) => [...prev, { ...created, tasks: [] }]);
+      } catch (err) {
+        console.error('Error creating epic:', err);
       }
     }
   };
 
   const deleteEpic = async (epicId: string) => {
-    await supabase
-      .from('tasks')
-      .delete()
-      .eq('epic_id', epicId);
-
-    const { error } = await supabase
-      .from('epics')
-      .delete()
-      .eq('id', epicId);
-
-    if (error) {
-      console.error('Error deleting epic:', error);
-      return;
+    try {
+      const removed = removeEpic(epicId);
+      if (!removed) {
+        return;
+      }
+      setEpics((prev) => prev.filter((epicItem) => epicItem.id !== epicId));
+    } catch (err) {
+      console.error('Error deleting epic:', err);
     }
-
-    setEpics(epics.filter(e => e.id !== epicId));
   };
 
   return {

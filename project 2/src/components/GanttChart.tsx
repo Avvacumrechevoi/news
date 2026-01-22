@@ -56,14 +56,16 @@ export function GanttChart({ projectId }: GanttChartProps) {
   const filteredEpics = useMemo(() => {
     return epics.map(epic => {
       const filteredTasks = (epic.tasks || []).filter(task => {
+        const description = task.description || '';
+        const owner = task.owner || '';
         const matchesSearch = searchQuery === '' ||
           task.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          task.owner.toLowerCase().includes(searchQuery.toLowerCase());
+          description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          owner.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesType = selectedTypes.size === 0 || selectedTypes.has(task.type);
         const matchesStatus = selectedStatuses.size === 0 || selectedStatuses.has(task.status);
-        const matchesOwner = selectedOwners.size === 0 || selectedOwners.has(task.owner);
+        const matchesOwner = selectedOwners.size === 0 || selectedOwners.has(owner);
 
         const taskMonths = getTaskMonths(task);
         const matchesQuarter = selectedQuarter === null || taskMonths.some(month => {

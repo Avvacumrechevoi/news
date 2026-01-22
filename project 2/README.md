@@ -1,6 +1,6 @@
 # Интерактивная диаграмма Ганта для VK Видео
 
-Профессиональная интерактивная диаграмма Ганта для управления проектом запуска новостного сценария в VK Видео с интеграцией Supabase для хранения данных в реальном времени.
+Профессиональная интерактивная диаграмма Ганта для управления проектом запуска новостного сценария в VK Видео с локальным хранилищем данных в браузере (localStorage).
 
 ## Возможности
 
@@ -57,19 +57,18 @@
 - **Показ длительности** в днях при наведении
 - **Визуальная обратная связь** для всех действий
 
-#### База данных
-- **Supabase PostgreSQL** для хранения данных
-- **Real-time синхронизация** изменений
+#### Хранилище данных
+- **LocalStorage** для хранения данных в браузере
 - **Автоматическая инициализация** данных при первом запуске
-- **Row Level Security (RLS)** для безопасности
-- **Публичный доступ** для демо-версии
+- **Работает без backend** и внешних сервисов
+- **Сброс данных** через очистку localStorage в браузере
 
 ## Технический стек
 
 - **React 18** с функциональными компонентами и хуками
 - **TypeScript** для типобезопасности
 - **Tailwind CSS** для стилизации
-- **Supabase** для базы данных и backend
+- **LocalStorage** для хранения данных без backend
 - **Lucide React** для иконок
 - **Vite** для сборки
 
@@ -88,7 +87,7 @@ src/
 ├── hooks/
 │   └── useGanttData.ts      # Хук для работы с данными
 ├── lib/
-│   ├── supabase.ts          # Клиент Supabase
+│   ├── localStore.ts        # Локальное хранилище (localStorage)
 │   ├── constants.ts         # Константы и лейблы
 │   ├── seedData.ts          # Начальные данные
 │   └── exportUtils.ts       # Утилиты экспорта
@@ -97,34 +96,15 @@ src/
 └── App.tsx                  # Корневой компонент
 ```
 
-## База данных
+## Хранилище данных
 
-### Таблицы
+Данные сохраняются локально в браузере (localStorage) в виде JSON структуры:
 
-**projects**
-- id (uuid)
-- name (text)
-- description (text)
-- created_at, updated_at (timestamptz)
+- project
+- epics
+- tasks
 
-**epics**
-- id (uuid)
-- project_id (uuid, FK)
-- name, description (text)
-- type (text): content, tech, integration, distribution, optimization, monetization
-- start_month, duration (numeric)
-- order_index (integer)
-- created_at, updated_at (timestamptz)
-
-**tasks**
-- id (uuid)
-- epic_id (uuid, FK)
-- name, description, owner (text)
-- start_month, duration (numeric)
-- type (text): prep, dev, launch, growth, milestone
-- status (text): pending, in-progress, done
-- order_index (integer)
-- created_at, updated_at (timestamptz)
+Для полного сброса данных очистите localStorage (ключ `gantt-local-store-v1`).
 
 ## Использование
 
@@ -156,12 +136,8 @@ src/
 ## Публикация в GitHub Pages
 
 Публикация настроена через GitHub Actions (файл `.github/workflows/deploy-pages.yml`).
-Для сборки необходимо добавить в Secrets репозитория:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-
-После пуша в `main` или `master` собирается `dist` и публикуется на GitHub Pages.
+Секреты не требуются. После пуша в `main` собирается `dist` и публикуется на GitHub Pages.
+Данные хранятся локально в браузере пользователя.
 
 ## Что НЕ реализовано (будущие улучшения)
 
