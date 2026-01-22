@@ -40,7 +40,11 @@ export function exportToCSV(epics: Epic[]) {
     });
   });
 
-  const csv = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+  const escapeCell = (value: string | number | null | undefined) => {
+    const text = String(value ?? '');
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+  const csv = rows.map(row => row.map(cell => escapeCell(cell)).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

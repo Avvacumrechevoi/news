@@ -11,6 +11,7 @@ interface FilterBarProps {
   onStatusToggle: (status: TaskStatus) => void;
   onOwnerToggle: (owner: string) => void;
   onClearFilters: () => void;
+  hasActiveFilters?: boolean;
 }
 
 export function FilterBar({
@@ -21,9 +22,12 @@ export function FilterBar({
   onTypeToggle,
   onStatusToggle,
   onOwnerToggle,
-  onClearFilters
+  onClearFilters,
+  hasActiveFilters
 }: FilterBarProps) {
-  const hasFilters = selectedTypes.size > 0 || selectedStatuses.size > 0 || selectedOwners.size > 0;
+  const hasFilters = typeof hasActiveFilters === 'boolean'
+    ? hasActiveFilters
+    : selectedTypes.size > 0 || selectedStatuses.size > 0 || selectedOwners.size > 0;
 
   return (
     <div className="px-3 md:px-12 py-3 md:py-4 bg-white border-b border-gray-200">
