@@ -46,12 +46,12 @@ const saveStore = (store: LocalStore) => {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 };
 
-const seedProject = {
+const seedProject: Pick<Project, 'name' | 'description'> = {
   name: 'Запуск новостного сценария VK Видео',
   description: 'Q1: Запуск в клипах • Q2: Интеграция с Дзен • Q3: Витрина и оптимизация • Q4: Монетизация'
 };
 
-const seedEpics = [
+const seedEpics: Array<Omit<Epic, 'id' | 'project_id' | 'created_at' | 'updated_at' | 'tasks'>> = [
   {
     name: 'Подготовка контента и редакции',
     description: 'Формирование контентной базы, работа с паблишерами',
