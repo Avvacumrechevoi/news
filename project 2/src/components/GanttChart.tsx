@@ -219,6 +219,32 @@ export function GanttChart({ projectId }: GanttChartProps) {
     || selectedQuarter !== null
     || selectedMonths.size > 0;
 
+  const activePreset = useMemo(() => {
+    const filtersEmpty = selectedTypes.size === 0
+      && selectedStatuses.size === 0
+      && selectedOwners.size === 0
+      && selectedQuarter === null
+      && selectedMonths.size === 0
+      && searchQuery === '';
+
+    if (filtersEmpty) {
+      return 'all';
+    }
+    if (selectedStatuses.size === 1 && selectedStatuses.has('in-progress') && selectedTypes.size === 0
+      && selectedOwners.size === 0 && selectedQuarter === null && selectedMonths.size === 0 && searchQuery === '') {
+      return 'in-progress';
+    }
+    if (selectedTypes.size === 1 && selectedTypes.has('milestone') && selectedStatuses.size === 0
+      && selectedOwners.size === 0 && selectedQuarter === null && selectedMonths.size === 0 && searchQuery === '') {
+      return 'milestones';
+    }
+    if (selectedQuarter !== null && selectedMonths.size === 0 && selectedTypes.size === 0
+      && selectedStatuses.size === 0 && selectedOwners.size === 0 && searchQuery === '') {
+      return `q${selectedQuarter}`;
+    }
+    return null;
+  }, [searchQuery, selectedOwners, selectedQuarter, selectedMonths, selectedStatuses, selectedTypes]);
+
   const currentMonthPosition = useMemo(() => {
     const now = new Date();
     const monthIndex = now.getMonth();
@@ -450,32 +476,6 @@ export function GanttChart({ projectId }: GanttChartProps) {
       }
     }
   };
-
-  const activePreset = useMemo(() => {
-    const filtersEmpty = selectedTypes.size === 0
-      && selectedStatuses.size === 0
-      && selectedOwners.size === 0
-      && selectedQuarter === null
-      && selectedMonths.size === 0
-      && searchQuery === '';
-
-    if (filtersEmpty) {
-      return 'all';
-    }
-    if (selectedStatuses.size === 1 && selectedStatuses.has('in-progress') && selectedTypes.size === 0
-      && selectedOwners.size === 0 && selectedQuarter === null && selectedMonths.size === 0 && searchQuery === '') {
-      return 'in-progress';
-    }
-    if (selectedTypes.size === 1 && selectedTypes.has('milestone') && selectedStatuses.size === 0
-      && selectedOwners.size === 0 && selectedQuarter === null && selectedMonths.size === 0 && searchQuery === '') {
-      return 'milestones';
-    }
-    if (selectedQuarter !== null && selectedMonths.size === 0 && selectedTypes.size === 0
-      && selectedStatuses.size === 0 && selectedOwners.size === 0 && searchQuery === '') {
-      return `q${selectedQuarter}`;
-    }
-    return null;
-  }, [searchQuery, selectedOwners, selectedQuarter, selectedMonths, selectedStatuses, selectedTypes]);
 
   const handleImportData = async (payload: unknown) => {
     const generateId = () => {
