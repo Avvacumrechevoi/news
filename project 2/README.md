@@ -153,6 +153,16 @@ src/
 2. Выберите формат (JSON или CSV)
 3. Файл автоматически скачается
 
+## Публикация в GitHub Pages
+
+Публикация настроена через GitHub Actions (файл `.github/workflows/deploy-pages.yml`).
+Для сборки необходимо добавить в Secrets репозитория:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+После пуша в `main` или `master` собирается `dist` и публикуется на GitHub Pages.
+
 ## Что НЕ реализовано (будущие улучшения)
 
 ### Критичные
