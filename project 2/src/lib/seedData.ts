@@ -1,14 +1,31 @@
-import { supabase } from './supabase';
+import { supabase, isDemoMode } from './supabase';
+import { isStorageInitialized, markStorageInitialized } from './localStorageAdapter';
 
 export async function seedDatabase() {
-  const { data: existingProject } = await supabase
-    .from('projects')
-    .select('id')
-    .limit(1)
-    .maybeSingle();
+  // For demo mode, check localStorage initialization
+  if (isDemoMode && isStorageInitialized()) {
+    const { data: existingProject } = await supabase
+      .from('projects')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+    
+    if (existingProject) {
+      return existingProject.id;
+    }
+  }
 
-  if (existingProject) {
-    return existingProject.id;
+  // For Supabase mode, check if project exists
+  if (!isDemoMode) {
+    const { data: existingProject } = await supabase
+      .from('projects')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+
+    if (existingProject) {
+      return existingProject.id;
+    }
   }
 
   const { data: project, error: projectError } = await supabase
@@ -173,6 +190,11 @@ export async function seedDatabase() {
   if (tasksError) {
     console.error('Error creating tasks:', tasksError);
     throw new Error('Failed to create tasks');
+  }
+
+  // Mark localStorage as initialized for demo mode
+  if (isDemoMode) {
+    markStorageInitialized();
   }
 
   return project.id;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Epic, Task, TaskStatus } from '../types/gantt';
 
@@ -7,7 +7,7 @@ export function useGanttData(projectId: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -40,11 +40,11 @@ export function useGanttData(projectId: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     loadData();
-  }, [projectId]);
+  }, [loadData]);
 
   const updateTaskStatus = async (epicId: string, taskId: string) => {
     const epic = epics.find(e => e.id === epicId);
