@@ -56,7 +56,10 @@ export function EpicModal({ epic, isOpen, onClose, onSave }: EpicModalProps) {
   if (!isOpen) return null;
 
   const startMonthValue = typeof formData.start_month === 'number' ? formData.start_month : 0;
+  const durationValue = typeof formData.duration === 'number' ? formData.duration : 3;
   const { monthIndex } = getMonthParts(startMonthValue);
+  const exceedsYear = startMonthValue + durationValue > 12;
+  const invalidDuration = durationValue <= 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,7 +193,9 @@ export function EpicModal({ epic, isOpen, onClose, onSave }: EpicModalProps) {
                 min="0.1"
                 max="12"
                 step="0.1"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                  exceedsYear || invalidDuration ? 'border-amber-400' : 'border-gray-300'
+                }`}
                 value={durationInput}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -224,6 +229,13 @@ export function EpicModal({ epic, isOpen, onClose, onSave }: EpicModalProps) {
               </div>
             </div>
           </div>
+
+          {(exceedsYear || invalidDuration) && (
+            <div className="text-xs text-amber-600">
+              {invalidDuration && 'Длительность должна быть больше 0. '}
+              {exceedsYear && 'Диапазон выходит за пределы года.'}
+            </div>
+          )}
 
           <div className="flex gap-3 justify-end pt-4">
             <button

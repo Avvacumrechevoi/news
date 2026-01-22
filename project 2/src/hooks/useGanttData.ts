@@ -4,6 +4,8 @@ import {
   createTask,
   listEpics,
   listTasks,
+  moveEpic as moveEpicStore,
+  moveTask as moveTaskStore,
   removeEpic,
   removeTask,
   updateEpic,
@@ -217,6 +219,30 @@ export function useGanttData(projectId: string) {
     }
   };
 
+  const moveEpic = async (epicId: string, direction: 'up' | 'down') => {
+    try {
+      const moved = moveEpicStore(epicId, direction);
+      if (!moved) {
+        return;
+      }
+      await loadData();
+    } catch (err) {
+      console.error('Error moving epic:', err);
+    }
+  };
+
+  const moveTask = async (taskId: string, direction: 'up' | 'down') => {
+    try {
+      const moved = moveTaskStore(taskId, direction);
+      if (!moved) {
+        return;
+      }
+      await loadData();
+    } catch (err) {
+      console.error('Error moving task:', err);
+    }
+  };
+
   return {
     epics,
     loading,
@@ -226,6 +252,8 @@ export function useGanttData(projectId: string) {
     deleteTask,
     saveEpic,
     deleteEpic,
+    moveEpic,
+    moveTask,
     reload: loadData
   };
 }

@@ -1,21 +1,17 @@
-import { useState } from 'react';
 import { Search, X } from 'lucide-react';
 
 interface SearchBarProps {
+  query: string;
   onSearch: (query: string) => void;
   totalResults: number;
 }
 
-export function SearchBar({ onSearch, totalResults }: SearchBarProps) {
-  const [query, setQuery] = useState('');
-
+export function SearchBar({ query, onSearch, totalResults }: SearchBarProps) {
   const handleSearch = (value: string) => {
-    setQuery(value);
     onSearch(value);
   };
 
   const clearSearch = () => {
-    setQuery('');
     onSearch('');
   };
 

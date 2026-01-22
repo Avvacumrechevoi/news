@@ -1,4 +1,4 @@
-import { X, Calendar, Clock, User, Tag, CheckCircle2 } from 'lucide-react';
+import { X, Calendar, Clock, User, Tag, CheckCircle2, RefreshCcw } from 'lucide-react';
 import type { Task } from '../types/gantt';
 import { TYPE_LABELS, STATUS_LABELS, TASK_TYPE_COLORS } from '../lib/constants';
 
@@ -14,6 +14,10 @@ export function TaskDetailModal({ task, isOpen, onClose, onEdit }: TaskDetailMod
 
   const startDate = new Date(2026, task.start_month);
   const endDate = new Date(2026, task.start_month + task.duration);
+  const updatedAt = task.updated_at || task.created_at;
+  const updatedLabel = updatedAt
+    ? new Date(updatedAt).toLocaleString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4" onClick={onClose}>
@@ -83,6 +87,16 @@ export function TaskDetailModal({ task, isOpen, onClose, onEdit }: TaskDetailMod
                 <div className="text-sm font-medium text-gray-900">{TYPE_LABELS[task.type]}</div>
               </div>
             </div>
+
+            {updatedLabel && (
+              <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                <RefreshCcw className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Обновлено</div>
+                  <div className="text-sm font-medium text-gray-900">{updatedLabel}</div>
+                </div>
+              </div>
+            )}
           </div>
 
           {task.description && (

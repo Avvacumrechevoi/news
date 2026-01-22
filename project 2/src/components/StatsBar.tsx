@@ -3,10 +3,18 @@ interface StatsBarProps {
   inProgressTasks: number;
   totalTasks: number;
   completionPercentage: number;
+  milestoneTasks: number;
+  quarterStats: Array<{
+    quarter: number;
+    total: number;
+    completed: number;
+    percentage: number;
+  }>;
   selectedQuarter: number | null;
   selectedMonths: Set<number>;
   onQuarterSelect: (quarter: number) => void;
   onMonthToggle: (month: number) => void;
+  calmMode: boolean;
 }
 
 export function StatsBar({
@@ -14,18 +22,24 @@ export function StatsBar({
   inProgressTasks,
   totalTasks,
   completionPercentage,
+  milestoneTasks,
+  quarterStats,
   selectedQuarter,
   selectedMonths,
   onQuarterSelect,
-  onMonthToggle
+  onMonthToggle,
+  calmMode
 }: StatsBarProps) {
   const pendingTasks = totalTasks - completedTasks - inProgressTasks;
+  const completedShare = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const inProgressShare = totalTasks > 0 ? Math.round((inProgressTasks / totalTasks) * 100) : 0;
+  const pendingShare = totalTasks > 0 ? Math.round((pendingTasks / totalTasks) * 100) : 0;
 
   const MONTHS_SHORT = ['ЯНВ', 'ФЕВ', 'МАР', 'АПР', 'МАЙ', 'ИЮН', 'ИЮЛ', 'АВГ', 'СЕН', 'ОКТ', 'НОЯ', 'ДЕК'];
 
   return (
-    <div className="px-4 md:px-12 py-4 md:py-6 bg-gradient-to-r from-blue-50 to-slate-50 border-b border-gray-200">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-6">
+    <div className={`px-4 md:px-12 py-4 md:py-6 border-b border-gray-200 ${calmMode ? 'bg-gray-50' : 'bg-gradient-to-r from-blue-50 to-slate-50'}`}>
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-6 mb-4 md:mb-6">
         <div className="bg-white rounded-lg p-3 md:p-5 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between mb-2 md:mb-3">
             <div className="text-xs md:text-sm font-medium text-gray-600">Всего задач</div>
@@ -48,7 +62,7 @@ export function StatsBar({
             </div>
           </div>
           <div className="text-2xl md:text-3xl font-bold text-green-600">{completedTasks}</div>
-          <div className="text-xs text-gray-500 mt-1 hidden md:block">{Math.round((completedTasks / totalTasks) * 100)}% от общего</div>
+          <div className="text-xs text-gray-500 mt-1 hidden md:block">{completedShare}% от общего</div>
         </div>
 
         <div className="bg-white rounded-lg p-3 md:p-5 border border-gray-200 shadow-sm">
@@ -61,7 +75,7 @@ export function StatsBar({
             </div>
           </div>
           <div className="text-2xl md:text-3xl font-bold text-amber-600">{inProgressTasks}</div>
-          <div className="text-xs text-gray-500 mt-1 hidden md:block">{Math.round((inProgressTasks / totalTasks) * 100)}% от общего</div>
+          <div className="text-xs text-gray-500 mt-1 hidden md:block">{inProgressShare}% от общего</div>
         </div>
 
         <div className="bg-white rounded-lg p-3 md:p-5 border border-gray-200 shadow-sm">
@@ -74,7 +88,20 @@ export function StatsBar({
             </div>
           </div>
           <div className="text-2xl md:text-3xl font-bold text-gray-600">{pendingTasks}</div>
-          <div className="text-xs text-gray-500 mt-1 hidden md:block">{Math.round((pendingTasks / totalTasks) * 100)}% от общего</div>
+          <div className="text-xs text-gray-500 mt-1 hidden md:block">{pendingShare}% от общего</div>
+        </div>
+
+        <div className="bg-white rounded-lg p-3 md:p-5 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2 md:mb-3">
+            <div className="text-xs md:text-sm font-medium text-gray-600">Вехи</div>
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-50 flex items-center justify-center">
+              <svg className="w-4 h-4 md:w-5 md:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19V5m0 0l14 7-14 7V5z" />
+              </svg>
+            </div>
+          </div>
+          <div className="text-2xl md:text-3xl font-bold text-blue-600">{milestoneTasks}</div>
+          <div className="text-xs text-gray-500 mt-1 hidden md:block">Ключевые точки</div>
         </div>
       </div>
 
@@ -135,6 +162,26 @@ export function StatsBar({
           <div className="flex justify-between mt-2 text-xs text-gray-500">
             <span>Январь</span>
             <span>Декабрь</span>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="text-xs text-gray-500 mb-2">Прогресс по кварталам:</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {quarterStats.map((stat) => (
+              <div key={stat.quarter} className="bg-gray-50 rounded-md border border-gray-200 px-2 py-1.5">
+                <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                  <span>Q{stat.quarter}</span>
+                  <span>{stat.percentage}%</span>
+                </div>
+                <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${stat.percentage}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

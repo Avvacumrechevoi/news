@@ -1,6 +1,6 @@
 import type { Epic, Project, Task } from '../types/gantt';
 
-type LocalStore = {
+export type LocalStore = {
   project: Project;
   epics: Epic[];
   tasks: Task[];
@@ -185,14 +185,22 @@ const seedTasks: SeedTask[] = [
   { epicIndex: 8, name: 'Персонализация', description: 'Умная лента на основе интересов', owner: 'ML', start_month: 10, duration: 2, type: 'dev', status: 'pending', order_index: 2 }
 ];
 
-const createSeedStore = (): LocalStore => {
+type SeedOverrides = {
+  projectId?: string;
+  projectName?: string;
+  projectDescription?: string;
+};
+
+const createSeedStore = (overrides: SeedOverrides = {}): LocalStore => {
   const timestamp = now();
-  const projectId = createId();
+  const projectId = overrides.projectId ?? createId();
+  const projectName = overrides.projectName ?? seedProject.name;
+  const projectDescription = overrides.projectDescription ?? seedProject.description;
 
   const project: Project = {
     id: projectId,
-    name: seedProject.name,
-    description: seedProject.description,
+    name: projectName,
+    description: projectDescription,
     created_at: timestamp,
     updated_at: timestamp
   };
@@ -238,6 +246,18 @@ const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 export const getProjectId = () => ensureStore().project.id;
 
 export const getProject = (): Project => clone(ensureStore().project);
+
+export const getStoreSnapshot = (): LocalStore => clone(ensureStore());
+
+export const replaceStore = (store: LocalStore) => {
+  saveStore(store);
+};
+
+export const resetStore = (projectId?: string): LocalStore => {
+  const seeded = createSeedStore({ projectId });
+  saveStore(seeded);
+  return clone(seeded);
+};
 
 export const listEpics = (projectId: string): Epic[] => {
   const store = ensureStore();
@@ -339,6 +359,71 @@ export const removeEpic = (epicId: string): boolean => {
   }
   store.epics = nextEpics;
   store.tasks = store.tasks.filter((task) => task.epic_id !== epicId);
+  saveStore(store);
+  return true;
+};
+
+export const moveEpic = (epicId: string, direction: 'up' | 'down'): boolean => {
+  const store = ensureStore();
+  const ordered = [...store.epics].sort((a, b) => a.order_index - b.order_index);
+  const index = ordered.findIndex((epic) => epic.id === epicId);
+  if (index === -1) {
+    return false;
+  }
+  const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= ordered.length) {
+    return false;
+  }
+
+  const current = ordered[index];
+  const target = ordered[targetIndex];
+  const currentOrder = current.order_index;
+  const targetOrder = target.order_index;
+
+  store.epics = store.epics.map((epic) => {
+    if (epic.id === current.id) {
+      return { ...epic, order_index: targetOrder, updated_at: now() };
+    }
+    if (epic.id === target.id) {
+      return { ...epic, order_index: currentOrder, updated_at: now() };
+    }
+    return epic;
+  });
+
+  saveStore(store);
+  return true;
+};
+
+export const moveTask = (taskId: string, direction: 'up' | 'down'): boolean => {
+  const store = ensureStore();
+  const current = store.tasks.find((task) => task.id === taskId);
+  if (!current) {
+    return false;
+  }
+
+  const siblings = store.tasks
+    .filter((task) => task.epic_id === current.epic_id)
+    .sort((a, b) => a.order_index - b.order_index);
+  const index = siblings.findIndex((task) => task.id === taskId);
+  const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= siblings.length) {
+    return false;
+  }
+
+  const target = siblings[targetIndex];
+  const currentOrder = current.order_index;
+  const targetOrder = target.order_index;
+
+  store.tasks = store.tasks.map((task) => {
+    if (task.id === current.id) {
+      return { ...task, order_index: targetOrder, updated_at: now() };
+    }
+    if (task.id === target.id) {
+      return { ...task, order_index: currentOrder, updated_at: now() };
+    }
+    return task;
+  });
+
   saveStore(store);
   return true;
 };
