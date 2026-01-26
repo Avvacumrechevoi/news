@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGanttData } from '../hooks/useGanttData';
 import { EpicRow } from './EpicRow';
 import { StatsBar } from './StatsBar';
@@ -52,6 +52,7 @@ export function GanttChart({ projectId }: GanttChartProps) {
   const [projectName, setProjectName] = useState('');
   const [uiReady, setUiReady] = useState(false);
   const [hasStoredExpanded, setHasStoredExpanded] = useState(false);
+  const hasAutoExpanded = useRef(false);
 
   const availableOwners = useMemo(() => {
     const owners = new Set<string>();
@@ -160,11 +161,14 @@ export function GanttChart({ projectId }: GanttChartProps) {
   ]);
 
   useEffect(() => {
-    if (!uiReady || hasStoredExpanded) {
+    if (!uiReady || hasStoredExpanded || hasAutoExpanded.current) {
       return;
     }
-    if (epics.length > 0 && expandedEpics.size === 0) {
-      setExpandedEpics(new Set(epics.map((epic) => epic.id)));
+    if (epics.length > 0) {
+      if (expandedEpics.size === 0) {
+        setExpandedEpics(new Set(epics.map((epic) => epic.id)));
+      }
+      hasAutoExpanded.current = true;
     }
   }, [epics, expandedEpics.size, hasStoredExpanded, uiReady]);
 
